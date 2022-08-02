@@ -76,13 +76,12 @@ class TestLexers(unittest.TestCase):
 		self.ed.EmptyUndoBuffer()
 		self.ed.SetCodePage(65001)
 		self.ed.LexerLanguage = lexerName
-		mask = 0xff
 		for i in range(len(keywords)):
 			self.ed.SetKeyWords(i, keywords[i])
 
 		nameExample = os.path.join("examples", name)
-		namePrevious = nameExample +".styled"
-		nameNew = nameExample +".new"
+		namePrevious = f"{nameExample}.styled"
+		nameNew = f"{nameExample}.new"
 		with open(nameExample, "rb") as f:
 			prog = f.read()
 		if fileMode == "t" and sys.platform == "win32":
@@ -105,7 +104,7 @@ class TestLexers(unittest.TestCase):
 		if progStyled != prevStyled:
 			with open(nameNew, "wb") as f:
 				f.write(progStyled)
-			print("Incorrect lex for " + name)
+			print(f"Incorrect lex for {name}")
 			print(progStyled)
 			print(prevStyled)
 			self.assertEquals(progStyled, prevStyled)
@@ -114,6 +113,7 @@ class TestLexers(unittest.TestCase):
 			return
 
 		if fileMode == "b":	# "t" files are large and this is a quadratic check
+			mask = 0xff
 			# Try partial lexes from the start of every line which should all be identical.
 			for line in range(self.ed.LineCount):
 				lineStart = self.ed.PositionFromLine(line)
@@ -122,7 +122,7 @@ class TestLexers(unittest.TestCase):
 				self.ed.Colourise(lineStart, lenDocument)
 				progStyled = self.AsStyled(fileMode == "t" and sys.platform == "win32")
 				if progStyled != prevStyled:
-					print("Incorrect partial lex for " + name + " at line " + line)
+					print(f"Incorrect partial lex for {name} at line {line}")
 					with open(nameNew, "wb") as f:
 						f.write(progStyled)
 					self.assertEquals(progStyled, prevStyled)

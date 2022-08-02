@@ -59,7 +59,7 @@ class ScintillaCallable:
 			if face.features[f]["FeatureType"] == "val":
 				self.k[f] = int(self.face.features[f]["Value"], 0)
 			elif face.features[f]["FeatureType"] == "evt":
-				self.k["SCN_"+f] = int(self.face.features[f]["Value"], 0)
+				self.k[f"SCN_{f}"] = int(self.face.features[f]["Value"], 0)
 		scifn = sciFX(scifn)
 		self.__dict__["_scifn"] = scifn
 		self.__dict__["_sciptr"] = sciptr
@@ -68,26 +68,26 @@ class ScintillaCallable:
 			self.used.add(name)
 			feature = self.face.features[name]
 			value = int(feature["Value"], 0)
-			#~ print("Feature", name, feature)
-			if feature["FeatureType"] == "val":
-				self.__dict__[name] = value
-				return value
-			else:
-				if feature["Param2Type"] == "stringresult" and \
-					name not in ["GetText", "GetLine", "GetCurLine"]:
-					return SciCall(self._scifn, self._sciptr, value, True)
-				else:
-					return SciCall(self._scifn, self._sciptr, value)
-		elif ("Get" + name) in self.face.features:
-			self.used.add("Get" + name)
-			feature = self.face.features["Get" + name]
+			if feature["FeatureType"] != "val":
+				return (
+					SciCall(self._scifn, self._sciptr, value, True)
+					if feature["Param2Type"] == "stringresult"
+					and name not in ["GetText", "GetLine", "GetCurLine"]
+					else SciCall(self._scifn, self._sciptr, value)
+				)
+
+			self.__dict__[name] = value
+			return value
+		elif f"Get{name}" in self.face.features:
+			self.used.add(f"Get{name}")
+			feature = self.face.features[f"Get{name}"]
 			value = int(feature["Value"], 0)
 			if feature["FeatureType"] == "get" and \
-				not name.startswith("Get") and \
-				not feature["Param1Type"] and \
-				not feature["Param2Type"] and \
-				(feature["ReturnType"] in ["bool", "int", "position", "line", "pointer"] or \
-				IsEnumeration(feature["ReturnType"])):
+					not name.startswith("Get") and \
+					not feature["Param1Type"] and \
+					not feature["Param2Type"] and \
+					(feature["ReturnType"] in ["bool", "int", "position", "line", "pointer"] or \
+					IsEnumeration(feature["ReturnType"])):
 				#~ print("property", feature)
 				return self._scifn(self._sciptr, value, None, None)
 		elif name.startswith("SCN_") and name in self.k:
@@ -99,9 +99,9 @@ class ScintillaCallable:
 				return value
 		raise AttributeError(name)
 	def __setattr__(self, name, val):
-		if ("Set" + name) in self.face.features:
-			self.used.add("Set" + name)
-			feature = self.face.features["Set" + name]
+		if f"Set{name}" in self.face.features:
+			self.used.add(f"Set{name}")
+			feature = self.face.features[f"Set{name}"]
 			value = int(feature["Value"], 0)
 			#~ print("setproperty", feature)
 			if feature["FeatureType"] == "set" and not name.startswith("Set"):
@@ -149,9 +149,8 @@ class ScintillaCallable:
 		ft.lpstrText = s
 		ft.cpMinText = 0
 		ft.cpMaxText = 0
-		pos = self.FindText(flags, ctypes.byref(ft))
 		#~ print(start, end, ft.cpMinText, ft.cpMaxText)
-		return pos
+		return self.FindText(flags, ctypes.byref(ft))
 
 	def Contents(self):
 		return self.ByteRange(0, self.Length)

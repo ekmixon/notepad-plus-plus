@@ -102,9 +102,9 @@ def KeyTranslate(w):
 	elif ord("A") <= w <= ord("Z"):
 		return chr(w)
 	elif 0x70 <= w <= 0x7b:
-		return "F" + str(w-0x70+1)
+		return f"F{str(w-0x70+1)}"
 	else:
-		return "Unknown_" + hex(w)
+		return f"Unknown_{hex(w)}"
 
 class WNDCLASS(ctypes.Structure):
 	_fields_= (\
@@ -156,8 +156,8 @@ class XiteWin():
 		self.wfunc = WFUNC(self.WndProc)
 		RegisterClass(self.windowName, self.wfunc)
 		user32.CreateWindowExW(0, self.windowName, self.appName, \
-			WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, \
-			0, 0, 500, 700, 0, 0, hinst, 0)
+				WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, \
+				0, 0, 500, 700, 0, 0, hinst, 0)
 
 		args = [a for a in sys.argv[1:] if not a.startswith("-")]
 		self.SetMenus()
@@ -168,8 +168,8 @@ class XiteWin():
 
 		if self.test:
 			print(self.test)
-			for k in self.cmds:
-				if self.cmds[k] == "Test":
+			for k, v in self.cmds.items():
+				if v == "Test":
 					user32.PostMessageW(self.win, msgs["WM_COMMAND"], k, 0)
 
 	def FocusOnEditor(self):
@@ -214,7 +214,7 @@ class XiteWin():
 		user32.DefWindowProcW.argtypes = [HWND, c_uint, WPARAM, LPARAM]
 		ms = sgsm.get(m, "XXX")
 		if trace:
-			print("%s %s %s %s" % (hex(h)[2:],ms,w,l))
+			print(f"{hex(h)[2:]} {ms} {w} {l}")
 		if ms == "WM_CLOSE":
 			user32.PostQuitMessage(0)
 		elif ms == "WM_CREATE":
@@ -240,7 +240,7 @@ class XiteWin():
 
 	def Command(self, name):
 		name = name.replace(" ", "")
-		method = "Cmd" + name
+		method = f"Cmd{name}"
 		cmd = None
 		try:
 			cmd = getattr(self, method)
@@ -259,7 +259,7 @@ class XiteWin():
 		if trace:
 			print("Key:", keyName)
 		if keyName in self.keys:
-			method = "Cmd" + self.keys[keyName]
+			method = f"Cmd{self.keys[keyName]}"
 			getattr(self, method)()
 			return True
 		#~ print("UKey:", keyName)
@@ -289,19 +289,15 @@ class XiteWin():
 		cont = True
 		while cont:
 			cont = user32.PeekMessageW(lpmsg, 0, 0, 0, PM_REMOVE)
-			if cont:
-				if not self.Accelerator(msg):
-					user32.TranslateMessage(lpmsg)
-					user32.DispatchMessageW(lpmsg)
+			if cont and not self.Accelerator(msg):
+				user32.TranslateMessage(lpmsg)
+				user32.DispatchMessageW(lpmsg)
 
 	def SetTitle(self, changePath):
 		if changePath or self.titleDirty != self.ed.Modify:
 			self.titleDirty = self.ed.Modify
 			self.title = self.fullPath
-			if self.titleDirty:
-				self.title += " * "
-			else:
-				self.title += " - "
+			self.title += " * " if self.titleDirty else " - "
 			self.title += self.appName
 			if self.win:
 				user32.SetWindowTextW(self.win, self.title)
@@ -434,28 +430,25 @@ class XiteWin():
 		self.fullPath = name
 		self.overrideMode = None
 		self.NewDocument()
-		fsr = open(name, "rb")
-		data = fsr.read()
-		fsr.close()
+		with open(name, "rb") as fsr:
+			data = fsr.read()
 		self.ed.AddText(len(data), data)
 		self.ed.EmptyUndoBuffer()
 		self.MoveSelection(0)
 		self.SetTitle(1)
 
 	def Save(self):
-		fos = open(self.fullPath, "wb")
-		blockSize = 1024
-		length = self.ed.Length
-		i = 0
-		while i < length:
-			grabSize = length - i
-			if grabSize > blockSize:
-				grabSize = blockSize
-			#~ print(i, grabSize, length)
-			data = self.ed.ByteRange(i, i + grabSize)
-			fos.write(data)
-			i += grabSize
-		fos.close()
+		with open(self.fullPath, "wb") as fos:
+			blockSize = 1024
+			length = self.ed.Length
+			i = 0
+			while i < length:
+				grabSize = length - i
+				grabSize = min(grabSize, blockSize)
+				#~ print(i, grabSize, length)
+				data = self.ed.ByteRange(i, i + grabSize)
+				fos.write(data)
+				i += grabSize
 		self.ed.SetSavePoint()
 		self.SetTitle(0)
 
@@ -468,7 +461,7 @@ class XiteWin():
 		self.Open()
 
 	def CmdSave(self):
-		if (self.fullPath == None) or (len(self.fullPath) == 0):
+		if self.fullPath is None or len(self.fullPath) == 0:
 			self.SaveAs()
 		else:
 			self.Save()
