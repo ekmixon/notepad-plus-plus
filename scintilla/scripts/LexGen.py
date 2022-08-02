@@ -28,16 +28,30 @@ import gtk.DepGen
 def UpdateVersionNumbers(sci, root):
     UpdateLineInFile(root / "win32/ScintRes.rc", "#define VERSION_SCINTILLA",
         "#define VERSION_SCINTILLA \"" + sci.versionDotted + "\"")
-    UpdateLineInFile(root / "win32/ScintRes.rc", "#define VERSION_WORDS",
-        "#define VERSION_WORDS " + sci.versionCommad)
-    UpdateLineInFile(root / "qt/ScintillaEditBase/ScintillaEditBase.pro",
+    UpdateLineInFile(
+        root / "win32/ScintRes.rc",
+        "#define VERSION_WORDS",
+        f"#define VERSION_WORDS {sci.versionCommad}",
+    )
+
+    UpdateLineInFile(
+        root / "qt/ScintillaEditBase/ScintillaEditBase.pro",
         "VERSION =",
-        "VERSION = " + sci.versionDotted)
-    UpdateLineInFile(root / "qt/ScintillaEdit/ScintillaEdit.pro",
+        f"VERSION = {sci.versionDotted}",
+    )
+
+    UpdateLineInFile(
+        root / "qt/ScintillaEdit/ScintillaEdit.pro",
         "VERSION =",
-        "VERSION = " + sci.versionDotted)
-    UpdateLineInFile(root / "doc/ScintillaDownload.html", "       Release",
-        "       Release " + sci.versionDotted)
+        f"VERSION = {sci.versionDotted}",
+    )
+
+    UpdateLineInFile(
+        root / "doc/ScintillaDownload.html",
+        "       Release",
+        f"       Release {sci.versionDotted}",
+    )
+
     ReplaceREInFile(root / "doc/ScintillaDownload.html",
         r"/www.scintilla.org/([a-zA-Z]+)\d\d\d",
         r"/www.scintilla.org/\g<1>" +  sci.version)
@@ -45,9 +59,12 @@ def UpdateVersionNumbers(sci, root):
         '          <font color="#FFCC99" size="3"> Release version',
         '          <font color="#FFCC99" size="3"> Release version ' +\
         sci.versionDotted + '<br />')
-    UpdateLineInFile(root / "doc/index.html",
+    UpdateLineInFile(
+        root / "doc/index.html",
         '           Site last modified',
-        '           Site last modified ' + sci.mdyModified + '</font>')
+        f'           Site last modified {sci.mdyModified}</font>',
+    )
+
     UpdateLineInFile(root / "doc/ScintillaHistory.html",
         '	Released ',
         '	Released ' + sci.dmyModified + '.')
@@ -102,8 +119,8 @@ def RegenerateXcodeProject(path, lexers, lexerReferences):
             lexerReferences[lexer] = [uid1, uid2]
             linePBXBuildFile = "\t\t{} /* {}.cxx in Sources */ = {{isa = PBXBuildFile; fileRef = {} /* {}.cxx */; }};".format(uid1, lexer, uid2, lexer)
             linePBXFileReference = "\t\t{} /* {}.cxx */ = {{isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = {}.cxx; path = ../../lexers/{}.cxx; sourceTree = SOURCE_ROOT; }};".format(uid2, lexer, lexer, lexer)
-            lineLexers = "\t\t\t\t{} /* {}.cxx */,".format(uid2, lexer)
-            linePBXSourcesBuildPhase = "\t\t\t\t{} /* {}.cxx in Sources */,".format(uid1, lexer)
+            lineLexers = f"\t\t\t\t{uid2} /* {lexer}.cxx */,"
+            linePBXSourcesBuildPhase = f"\t\t\t\t{uid1} /* {lexer}.cxx in Sources */,"
             sectionPBXBuildFile.append(linePBXBuildFile)
             sectionPBXFileReference.append(linePBXFileReference)
             sectionLexers.append(lineLexers)

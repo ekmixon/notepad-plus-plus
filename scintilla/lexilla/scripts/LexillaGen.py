@@ -62,8 +62,8 @@ def RegenerateXcodeProject(path, lexers, lexerReferences):
             lexerReferences[lexer] = [uid1, uid2]
             linePBXBuildFile = "\t\t{} /* {}.cxx in Sources */ = {{isa = PBXBuildFile; fileRef = {} /* {}.cxx */; }};".format(uid1, lexer, uid2, lexer)
             linePBXFileReference = "\t\t{} /* {}.cxx */ = {{isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = {}.cxx; path = ../../lexers/{}.cxx; sourceTree = SOURCE_ROOT; }};".format(uid2, lexer, lexer, lexer)
-            lineLexers = "\t\t\t\t{} /* {}.cxx */,".format(uid2, lexer)
-            linePBXSourcesBuildPhase = "\t\t\t\t{} /* {}.cxx in Sources */,".format(uid1, lexer)
+            lineLexers = f"\t\t\t\t{uid2} /* {lexer}.cxx */,"
+            linePBXSourcesBuildPhase = f"\t\t\t\t{uid1} /* {lexer}.cxx in Sources */,"
             sectionPBXBuildFile.append(linePBXBuildFile)
             sectionPBXFileReference.append(linePBXFileReference)
             sectionLexers.append(lineLexers)
@@ -103,14 +103,18 @@ def RegenerateAll(rootDirectory):
 
     # Discover version information
     version = (lexillaDir / "version.txt").read_text().strip()
-    versionDotted = version[0] + '.' + version[1] + '.' + version[2]
+    versionDotted = f'{version[0]}.{version[1]}.{version[2]}'
     versionCommad = versionDotted.replace(".", ", ") + ', 0'
 
     rcPath = srcDir / "LexillaVersion.rc"
     UpdateLineInFile(rcPath, "#define VERSION_LEXILLA",
         "#define VERSION_LEXILLA \"" + versionDotted + "\"")
-    UpdateLineInFile(rcPath, "#define VERSION_WORDS",
-        "#define VERSION_WORDS " + versionCommad)
+    UpdateLineInFile(
+        rcPath,
+        "#define VERSION_WORDS",
+        f"#define VERSION_WORDS {versionCommad}",
+    )
+
 
     lexillaXcode = lexillaDir / "src" / "Lexilla"
     lexillaXcodeProject = lexillaXcode / "Lexilla.xcodeproj" / "project.pbxproj"

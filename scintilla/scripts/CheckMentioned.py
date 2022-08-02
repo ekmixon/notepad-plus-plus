@@ -8,7 +8,7 @@ import re, string, sys
 
 srcRoot = "../.."
 
-sys.path.append(srcRoot + "/scintilla/scripts")
+sys.path.append(f"{srcRoot}/scintilla/scripts")
 
 import Face
 
@@ -19,31 +19,28 @@ uninteresting = {
 	"CharacterRange", "TextRange", "TextToFind", "RangeToFormat", "NotifyHeader",
 }
 
-incFileName = srcRoot + "/scintilla/include/Scintilla.h"
-docFileName = srcRoot + "/scintilla/doc/ScintillaDoc.html"
-identCharacters = "_" + string.ascii_letters + string.digits
+incFileName = f"{srcRoot}/scintilla/include/Scintilla.h"
+docFileName = f"{srcRoot}/scintilla/doc/ScintillaDoc.html"
+identCharacters = f"_{string.ascii_letters}{string.digits}"
 
 # Convert all punctuation characters except '_' into spaces.
 def depunctuate(s):
 	d = ""
 	for ch in s:
-		if ch in identCharacters:
-			d = d + ch
-		else:
-			d = d + " "
+		d = d + ch if ch in identCharacters else f"{d} "
 	return d
 
 symbols = {}
 with open(incFileName, "rt") as incFile:
-	for line in incFile.readlines():
+	for line in incFile:
 		if line.startswith("#define"):
 			identifier = line.split()[1]
 			symbols[identifier] = 0
 
 with open(docFileName, "rt") as docFile:
-	for line in docFile.readlines():
+	for line in docFile:
 		for word in depunctuate(line).split():
-			if word in symbols.keys():
+			if word in symbols:
 				symbols[word] = 1
 
 def convertIFaceTypeToC(t):
@@ -63,7 +60,7 @@ def convertIFaceTypeToC(t):
 		return "Sci_RangeToFormat *"
 	elif Face.IsEnumeration(t):
 		return "int "
-	return t + " "
+	return f"{t} "
 
 def makeParm(t, n, v):
 	return (convertIFaceTypeToC(t) + n).rstrip()
@@ -73,7 +70,7 @@ def makeRet(params):
 	if retType in ["void", "string", "stringresult"]:
 		retType = ""
 	if retType:
-		retType = " &rarr; " + retType
+		retType = f" &rarr; {retType}"
 
 	return retType
 
@@ -87,7 +84,7 @@ def makeSig(params):
 	elif Face.IsEnumeration(retType):
 		retType = "int"
 	if retType:
-		retType = " &rarr; " + retType
+		retType = f" &rarr; {retType}"
 
 	if p1 == "" and p2 == "":
 		return retType
@@ -95,12 +92,10 @@ def makeSig(params):
 	ret = ""
 	if p1 == "":
 		p1 = "&lt;unused&gt;"
-	joiner = ""
-	if p2 != "":
-		joiner = ", "
-	return "(" + p1 + joiner + p2 + ")" + retType
+	joiner = ", " if p2 != "" else ""
+	return f"({p1}{joiner}{p2}){retType}"
 
-pathIface = srcRoot + "/scintilla/include/Scintilla.iface"
+pathIface = f"{srcRoot}/scintilla/include/Scintilla.iface"
 
 def retrieveFeatures():
 	face = Face.Face()
@@ -110,13 +105,13 @@ def retrieveFeatures():
 	for name in face.order:
 		v = face.features[name]
 		if v["FeatureType"] in ["fun", "get", "set"]:
-			featureDefineName = "SCI_" + name.upper()
+			featureDefineName = f"SCI_{name.upper()}"
 			sciToFeature[featureDefineName] = name
 		elif v["FeatureType"] in ["val"]:
 			featureDefineName = name.upper()
 			sccToValue[featureDefineName] = v["Value"]
 		elif v["FeatureType"] in ["evt"]:
-			featureDefineName = "SCN_" + name.upper()
+			featureDefineName = f"SCN_{name.upper()}"
 			sccToValue[featureDefineName] = v["Value"]
 	return (face, sciToFeature, sccToValue)
 
